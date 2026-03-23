@@ -89,7 +89,7 @@ def getCostMatrices(num_joints):
     num_controls = num_joints
     
     # Q = 1 * np.eye(num_states)  # State cost matrix
-    p_w = 10000
+    p_w = 100000
     v_w = 10
     Q_diag = np.array([p_w, p_w, p_w,p_w, p_w, p_w,p_w, v_w, v_w, v_w,v_w, v_w, v_w,v_w])
     Q = np.diag(Q_diag)

@@ -1,0 +1,5 @@
+# Ignore the build directory
+build/
+
+# Ignore the egg-info directory
+simulation_and_control.egg-info/

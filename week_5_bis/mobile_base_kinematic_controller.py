@@ -23,7 +23,6 @@ def quaternion2bearing(q_w, q_x, q_y, q_z):
 
 
 estimation_switch   = True
-
 def main():
     # Configuration for the simulation
     conf_file_name = "robotnik.json"  # Configuration file for the robot
@@ -87,6 +86,7 @@ def main():
 
     # Initial state estimate
     x_hat = np.zeros((state_dim, 1))
+    #Initial Q,R 0.01,0.05/ they are actually the best values for this kaltman filter
     # Initial covariance estimate
     P = np.eye(state_dim) * 0.1
     # TODO update this Process noise covariance
@@ -113,6 +113,8 @@ def main():
     k_beta = 1
     # Initialize data storage
     base_pos_all, base_ori_all = [], []
+    theta_all = []
+    # List to store theta values
     wheel_radius = 0.11
     wheel_base_width = 0.46
   
@@ -127,6 +129,9 @@ def main():
         base_pos = sim.GetBasePosition()
         base_ori = sim.GetBaseOrientation()
         base_bearing_ = quaternion2bearing(base_ori[3], base_ori[0], base_ori[1], base_ori[2])
+        # Add this line inside your main loop after estimating theta
+      
+
         # Kalman Filter Prediction Step
         dt = time_step
 
@@ -180,7 +185,8 @@ def main():
         if estimation_switch:
             base_pos = np.array([estimated_x, estimated_y, 0.0])
             base_bearing_ = estimated_theta
-
+            # Add this line inside your main loop after estimating theta
+        theta_all.append(base_bearing_) # Store the current bearing
 
         cmd = MotorCommands()  # Initialize command structure for motors
         # Check if all waypoints are completed
@@ -215,7 +221,8 @@ def main():
             if position_error < position_tolerance and orientation_error < orientation_tolerance:
                 print(f"Reached waypoint {current_waypoint_index + 1}")
                 current_waypoint_index += 1
-                # Optional: Add a short delay or pause if needed
+                # Todo Optional: Add a short delay or pause if needed
+                time.sleep(1)  # Pause for 1 second before moving to the next waypoint
         else:
             # All waypoints completed
             print("Completed all waypoints. Square path traversal finished.")
@@ -237,14 +244,39 @@ def main():
         current_time += time_step
 
 
-    # Plotting 
+    # Todo Plotting 
     #add visualization of final x, y, trajectory and theta
-    
-    
+    # TODO Plotting
+    # Convert lists to numpy arrays for easy plotting
+    base_pos_all = np.array(base_pos_all)
+        # 获取最后一个子数组
+    last_subarray = base_pos_all[-1]
+
+    # 将最后一个子数组添加到 base_pos_all 的末尾
+    base_pos_all = np.vstack([base_pos_all, last_subarray])
+    theta_all = np.array(theta_all)  # Convert theta list to numpy array
+    print(base_pos_all.shape)
    
-     
-    
-    
+    # Add arrows to represent orientation
+    arrow_length = 0.00000001  # Length of the arrows
+    arrow_width = 0.01  # 设置箭头宽度
+    plt.quiver(base_pos_all[:, 0], base_pos_all[:, 1],
+            arrow_length * np.cos(theta_all),  # X component of arrow
+            arrow_length * np.sin(theta_all),  # Y component of arrow
+            angles='xy', scale_units='xy', scale=0.5, color='green', width=arrow_width, label='Orientation')
+
+    # Plot trajectory
+    plt.figure(figsize=(10, 6))
+    plt.plot(base_pos_all[:, 0], base_pos_all[:, 1], label='Trajectory', color='blue')
+    plt.scatter(base_pos_all[:, 0], base_pos_all[:, 1], color='red')  # Mark positions with red dots
+    plt.title('Robot Trajectory')
+    plt.xlabel('X Position (m)')
+    plt.ylabel('Y Position (m)')
+    plt.axis('equal')  # Equal aspect ratio
+    plt.grid()
+    plt.legend()
+    plt.savefig("plot.png", dpi=300, bbox_inches='tight') 
+    plt.show()
 
 if __name__ == '__main__':
     main()

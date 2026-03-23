@@ -53,9 +53,75 @@ def getSystemMatrices(sim, num_joints, damping_coefficients=None):
     time_step = sim.GetTimeStep()
     
     # TODO: Finish the system matrices 
+import numpy as np
+import time
+import os
+import matplotlib.pyplot as plt
+from simulation_and_control import pb, MotorCommands, PinWrapper, feedback_lin_ctrl, dyn_cancel, SinusoidalReference, CartesianDiffKin
+from regulator_model import RegulatorModel
+
+def initialize_simulation(conf_file_name):
+    """Initialize simulation and dynamic model."""
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    sim = pb.SimInterface(conf_file_name, conf_file_path_ext=cur_dir)
+    
+    ext_names = np.expand_dims(np.array(sim.getNameActiveJoints()), axis=0)
+    source_names = ["pybullet"]
+    
+    dyn_model = PinWrapper(conf_file_name, "pybullet", ext_names, source_names, False, 0, cur_dir)
+    num_joints = dyn_model.getNumberofActuatedJoints()
+    
+    return sim, dyn_model, num_joints
+
+
+def print_joint_info(sim, dyn_model, controlled_frame_name):
+    """Print initial joint angles and limits."""
+    init_joint_angles = sim.GetInitMotorAngles()
+    init_cartesian_pos, init_R = dyn_model.ComputeFK(init_joint_angles, controlled_frame_name)
+    
+    print(f"Initial joint angles: {init_joint_angles}")
+    
+    lower_limits, upper_limits = sim.GetBotJointsLimit()
+    print(f"Lower limits: {lower_limits}")
+    print(f"Upper limits: {upper_limits}")
+    
+    joint_vel_limits = sim.GetBotJointsVelLimit()
+    print(f"Joint velocity limits: {joint_vel_limits}")
+    
+
+def getSystemMatrices(sim, num_joints, damping_coefficients=None):
+    """
+    Get the system matrices A and B according to the dimensions of the state and control input.
+    
+    Parameters:
+    sim: Simulation object
+    num_joints: Number of robot joints
+    damping_coefficients: List or numpy array of damping coefficients for each joint (optional)
+    
+    Returns:
+    A: State transition matrix
+    B: Control input matrix
+    """
+    num_states = 2 * num_joints
+    num_controls = num_joints
+    
+    time_step = sim.GetTimeStep()
+    
+    # TODO: Finish the system matrices
+
+    
+ # TODO: Finish the system matrices  
+    # Define state transition matrix A
+    A = np.eye(num_states)  # Initialize A as identity matrix 创建一个单位矩阵（identity matrix）
+    damp_coe = 0.8
+    A[:num_joints, num_joints:] = np.eye(num_joints) * time_step  # Position update relation: q_k+1 = q_k + time_step * q̇_k
+    # A[num_joints:, num_joints:] = np.eye(num_joints) *  damp_coe
+    
+    # Define control input matrix B
+    B = np.zeros((num_states, num_controls))  # Initialize B with zeros
+    B[num_joints:, :] = np.eye(num_joints) * time_step  # Velocity update relation: q̇_k+1 = q̇_k + time_step * u_k
     
     return A, B
-
 
 def getCostMatrices(num_joints):
     """
@@ -69,7 +135,7 @@ def getCostMatrices(num_joints):
     num_controls = num_joints
     
     # Q = 1 * np.eye(num_states)  # State cost matrix
-    Q = 1000 * np.eye(num_states)
+    Q = 100000 * np.eye(num_states)
     Q[num_joints:, num_joints:] = 0.0
     
     R = 0.1 * np.eye(num_controls)  # Control input cost matrix
@@ -110,6 +176,7 @@ def main():
     H,F = regulator.compute_H_and_F(S_bar, T_bar, Q_bar, R_bar)
     
     # Main control loop
+    #5 - 60
     episode_duration = 5
     current_time = 0
     time_step = sim.GetTimeStep()
