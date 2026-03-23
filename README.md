@@ -1,3 +1,3 @@
-# lab_sessions_COMP0211_PUBLIC
+# COMP0242 Estimation and Control
 
 this is the repository for the the COMP0211 and COMP0242 from which is possible to access all the files nedeeded for the lab sessions 
